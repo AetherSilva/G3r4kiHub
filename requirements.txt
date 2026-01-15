@@ -1,0 +1,47 @@
+# Core Telegram Bot
+python-telegram-bot==20.7
+
+# Web Framework & Admin Dashboard
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+starlette==0.36.3
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Async & Concurrency
+asyncio-contextmanager==1.0.0
+asyncpg==0.29.0
+aioredis==2.0.1
+psycopg-pool==3.1.1
+
+# Database & ORM
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Scheduling
+APScheduler==3.10.4
+
+# Amazon API Integration
+amazon-paapi==3.0.0
+
+# HTTP & Requests
+requests==2.31.0
+httpx==0.25.2
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.3
+
+# Utilities
+python-dotenv==1.0.0
+pytz==2023.3
+
+# Testing & Dev
+pytest==7.4.4
+pytest-asyncio==0.23.3
+
+# Protocol Buffers (Optional for gRPC)
+protobuf==4.25.3
+grpcio==1.60.1
+grpcio-tools==1.60.1

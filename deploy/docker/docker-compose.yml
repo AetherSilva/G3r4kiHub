@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: g3r4kihub-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-g3r4kihub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-g3r4kihub}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-g3r4kihub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - g3r4kihub-net
+
+  # Redis Cache & Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: g3r4kihub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - g3r4kihub-net
+
+  # G3r4kiHub Bot Service
+  bot:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: g3r4kihub-bot
+    environment:
+      # Telegram Config
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHANNEL_ID: ${TELEGRAM_CHANNEL_ID}
+      TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID}
+      
+      # Amazon API Config
+      AMAZON_ACCESS_KEY: ${AMAZON_ACCESS_KEY}
+      AMAZON_SECRET_KEY: ${AMAZON_SECRET_KEY}
+      AMAZON_PARTNER_TAG: ${AMAZON_PARTNER_TAG}
+      AMAZON_COUNTRY: ${AMAZON_COUNTRY:-US}
+      
+      # Database Config
+      DATABASE_URL: postgresql://${POSTGRES_USER:-g3r4kihub}:${POSTGRES_PASSWORD:-secure_password}@postgres:5432/${POSTGRES_DB:-g3r4kihub}
+      
+      # Scheduler Config
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      POST_INTERVAL_HOURS: ${POST_INTERVAL_HOURS:-3}
+      POSTS_PER_DAY: ${POSTS_PER_DAY:-10}
+      
+      # Redis Config
+      REDIS_URL: redis://redis:6379/0
+      ENABLE_REDIS: ${ENABLE_REDIS:-true}
+      
+      # Admin Config
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      API_SECRET_KEY: ${API_SECRET_KEY:-your-secret-key}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    networks:
+      - g3r4kihub-net
+    restart: unless-stopped
+
+  # FastAPI Admin Dashboard
+  admin:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: g3r4kihub-admin
+    command: uvicorn web.app:app --host 0.0.0.0 --port 8000
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-g3r4kihub}:${POSTGRES_PASSWORD:-secure_password}@postgres:5432/${POSTGRES_DB:-g3r4kihub}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+    depends_on:
+      - postgres
+    ports:
+      - "8001:8000"
+    networks:
+      - g3r4kihub-net
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  g3r4kihub-net:
+    driver: bridge
+
+  pgdata:
